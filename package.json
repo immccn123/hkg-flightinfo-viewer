@@ -1,0 +1,26 @@
+{
+  "name": "hkg-flightinfo-viewer",
+  "private": true,
+  "license": "MIT",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@coreui/coreui": "^4.3.2",
+    "@coreui/vue": "^4.10.1",
+    "bootstrap": "^5.3.2",
+    "date-fns": "^2.30.0",
+    "swiper": "^11.0.5",
+    "vue": "^3.3.11"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vue-tsc": "^1.8.25"
+  }
+}
