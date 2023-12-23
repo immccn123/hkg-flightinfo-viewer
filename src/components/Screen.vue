@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onDeactivated, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import {
   DepartureData,
   DayFlight,
   DisplayDepartureData,
 } from "../interfaces/hkg";
-import { format, addDays, subDays, subHours, addHours } from "date-fns";
+import { format, addDays, subDays, addHours } from "date-fns";
 import {
   CTable,
   CTableHead,
@@ -14,9 +14,11 @@ import {
   CTableHeaderCell,
   CTableDataCell,
 } from "@coreui/vue";
+import { randomString } from "../utils";
+
+const BACKEND_URL = import.meta.env.VITE_HKG_FLIGHTINFO_URL as string;
 
 const flightData = ref<DepartureData>([]);
-const BACKEND_URL = import.meta.env.VITE_HKG_FLIGHTINFO_URL as string;
 const dateFormat = "yyyy-MM-dd";
 
 const fetcher = async () => {
@@ -32,21 +34,24 @@ const fetcher = async () => {
 
   departureData.push(
     await fetch(
-      `${BACKEND_URL}/?date=${formattedToday}&lang=en&cargo=false&arrival=false`
+      `${BACKEND_URL}/?date=${formattedToday}&lang=en&cargo=false&arrival=false` +
+        `&bypasscache=${randomString(8)}`
     ).then((resp) => {
       return resp.json() as unknown as DepartureData;
     })
   );
   departureData.push(
     await fetch(
-      `${BACKEND_URL}/?date=${formattedYesterday}&lang=en&cargo=false&arrival=false`
+      `${BACKEND_URL}/?date=${formattedYesterday}&lang=en&cargo=false&arrival=false` +
+        `&bypasscache=${randomString(8)}`
     ).then((resp) => {
       return resp.json() as unknown as DepartureData;
     })
   );
   departureData.push(
     await fetch(
-      `${BACKEND_URL}/?date=${formattedTomorrow}&lang=en&cargo=false&arrival=false`
+      `${BACKEND_URL}/?date=${formattedTomorrow}&lang=en&cargo=false&arrival=false` +
+        `&bypasscache=${randomString(8)}`
     ).then((resp) => {
       return resp.json() as unknown as DepartureData;
     })
@@ -85,23 +90,44 @@ const displayFlightData = computed<DisplayDepartureData[]>(() => {
   });
 
   const today = new Date();
-  const from = subHours(today, 1);
-  const to = addHours(today, 12);
+  const from = today;
+  const to = addHours(today, 6);
 
-  const ret = res
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const sortedFlights = res.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const boardingSoon = sortedFlights.filter(
+    (x) => x.flight.status === "Boarding Soon"
+  );
+  const finalCall = sortedFlights.filter(
+    (x) => x.flight.status === "Final Call"
+  );
+  const boarding = sortedFlights.filter((x) => x.flight.status === "Boarding");
+  const scheduled = sortedFlights.filter(
+    (x) => x.flight.status === "" || x.flight.status.includes("Est at")
+  );
+  const gateClosed = sortedFlights.filter(
+    (x) => x.flight.status === "Gate Closed"
+  );
+
+  const ret = [
+    ...gateClosed,
+    ...finalCall,
+    ...boarding,
+    ...boardingSoon,
+    ...scheduled,
+  ]
     .filter(
       (x) =>
         x.flight.status.includes("Est") ||
         x.flight.status.includes("Boarding") ||
+        x.flight.status.includes("Final Call") ||
         (x.date.getTime() >= from.getTime() && x.date.getTime() <= to.getTime())
-    );
+    )
+    .slice(0, 50);
 
-  // console.log(ret);
   return ret;
 });
 
-onDeactivated(() => {
+onBeforeUnmount(() => {
   clearInterval(timer);
 });
 
@@ -127,7 +153,10 @@ const getColor = (status: string) => {
 </script>
 
 <template>
-  <CTable>
+  <div id="loading-text" v-if="flightData.length === 0">
+    <p>Loading...</p>
+  </div>
+  <CTable v-if="flightData.length !== 0">
     <CTableHead>
       <CTableRow>
         <CTableHeaderCell scope="col">Time</CTableHeaderCell>
@@ -142,9 +171,9 @@ const getColor = (status: string) => {
         v-for="flight in displayFlightData"
         :color="getColor(flight.flight.status)"
       >
-        <CTableHeaderCell scope="row">{{
-          format(flight.date, "HH:mm")
-        }}</CTableHeaderCell>
+        <CTableHeaderCell scope="row">
+          {{ format(flight.date, "HH:mm") }}
+        </CTableHeaderCell>
         <CTableDataCell>
           {{ flight.flight.flight.map(({ no }) => no).join(" / ") }}
         </CTableDataCell>
@@ -164,24 +193,16 @@ const getColor = (status: string) => {
   </CTable>
 </template>
 
-<style>
-swiper-slide {
-  text-align: center;
-  font-size: 18px;
+<style scoped>
+#loading-text {
+  height: 80vh;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: row;
 }
 
-swiper-container {
+#loading-text p {
   width: 100%;
-  height: 100%;
-}
-
-swiper-slide p {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  text-align: center;
+  align-self: center;
 }
 </style>
