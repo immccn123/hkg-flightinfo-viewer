@@ -85,6 +85,7 @@ const displayFlightData = computed<DisplayDepartureData[]>(() => {
       res.push({
         date: new Date(day.date + "T" + flight.time + "+08:00"),
         flight,
+        key: flight.flight[0].no
       });
     });
   });
@@ -167,28 +168,35 @@ const getColor = (status: string) => {
       </CTableRow>
     </CTableHead>
     <CTableBody>
-      <CTableRow
-        v-for="flight in displayFlightData"
-        :color="getColor(flight.flight.status)"
-      >
-        <CTableHeaderCell scope="row">
-          {{ format(flight.date, "HH:mm") }}
-        </CTableHeaderCell>
-        <CTableDataCell>
-          {{ flight.flight.flight.map(({ no }) => no).join(" / ") }}
-        </CTableDataCell>
-        <CTableDataCell>
-          {{ destToString(flight.flight.destination) }}
-        </CTableDataCell>
-        <CTableDataCell>
-          {{ flight.flight.status === "" ? "Scheduled" : flight.flight.status }}
-        </CTableDataCell>
-        <CTableDataCell>
-          {{
-            flight.flight.gate === "" ? "To be determined" : flight.flight.gate
-          }}
-        </CTableDataCell>
-      </CTableRow>
+      <TransitionGroup name="flights">
+        <CTableRow
+          v-for="flight in displayFlightData"
+          :color="getColor(flight.flight.status)"
+          :key="flight.key"
+        >
+          <CTableHeaderCell scope="row">
+            {{ format(flight.date, "HH:mm") }}
+          </CTableHeaderCell>
+          <CTableDataCell>
+            {{ flight.flight.flight.map(({ no }) => no).join(" / ") }}
+          </CTableDataCell>
+          <CTableDataCell>
+            {{ destToString(flight.flight.destination) }}
+          </CTableDataCell>
+          <CTableDataCell>
+            {{
+              flight.flight.status === "" ? "Scheduled" : flight.flight.status
+            }}
+          </CTableDataCell>
+          <CTableDataCell>
+            {{
+              flight.flight.gate === ""
+                ? "To be determined"
+                : flight.flight.gate
+            }}
+          </CTableDataCell>
+        </CTableRow>
+      </TransitionGroup>
     </CTableBody>
   </CTable>
 </template>
@@ -204,5 +212,27 @@ const getColor = (status: string) => {
   width: 100%;
   text-align: center;
   align-self: center;
+}
+</style>
+
+<style>
+.flights-move,
+.flights-enter-active,
+.flights-leave-active {
+  transition: all 0.5s ease;
+}
+
+.flights-enter-from,
+.flights-leave-to > *,
+.flights-leave-to {
+  opacity: 0;
+}
+
+.table-danger,
+.table-success,
+.table-primary,
+.table-info,
+.table-light {
+  transition: 0.5s;
 }
 </style>

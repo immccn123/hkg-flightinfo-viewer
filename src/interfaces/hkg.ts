@@ -35,4 +35,5 @@ export interface FlightAirline {
 export interface DisplayDepartureData {
   date: Date;
   flight: FlightListItem;
+  key: string;
 }
