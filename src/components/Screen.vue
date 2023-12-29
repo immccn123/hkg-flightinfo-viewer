@@ -5,7 +5,7 @@ import {
   DayFlight,
   DisplayDepartureData,
 } from "../interfaces/hkg";
-import { format, addDays, subDays, addHours } from "date-fns";
+import { format, addDays, subDays, addHours, addSeconds } from "date-fns";
 import {
   CTable,
   CTableHead,
@@ -14,14 +14,17 @@ import {
   CTableHeaderCell,
   CTableDataCell,
 } from "@coreui/vue";
-import { randomString } from "../utils";
+import { randomString, removeDuplicates } from "../utils";
 
 const BACKEND_URL = import.meta.env.VITE_HKG_FLIGHTINFO_URL as string;
 
 const flightData = ref<DepartureData>([]);
 const dateFormat = "yyyy-MM-dd";
+const nextUpdate = ref<string>("");
 
 const fetcher = async () => {
+  nextUpdate.value = format(addSeconds(new Date(), 30), "HH:mm:ss");
+
   const today = new Date();
   const tomorrow = addDays(today, 1);
   const yesterday = subDays(today, 1);
@@ -85,7 +88,7 @@ const displayFlightData = computed<DisplayDepartureData[]>(() => {
       res.push({
         date: new Date(day.date + "T" + flight.time + "+08:00"),
         flight,
-        key: flight.flight[0].no
+        key: flight.flight[0].no,
       });
     });
   });
@@ -109,21 +112,20 @@ const displayFlightData = computed<DisplayDepartureData[]>(() => {
     (x) => x.flight.status === "Gate Closed"
   );
 
-  const ret = [
-    ...gateClosed,
-    ...finalCall,
-    ...boarding,
-    ...boardingSoon,
-    ...scheduled,
-  ]
-    .filter(
-      (x) =>
-        x.flight.status.includes("Est") ||
-        x.flight.status.includes("Boarding") ||
-        x.flight.status.includes("Final Call") ||
-        (x.date.getTime() >= from.getTime() && x.date.getTime() <= to.getTime())
-    )
-    .slice(0, 50);
+  const ret = removeDuplicates(
+    [...gateClosed, ...finalCall, ...boarding, ...boardingSoon, ...scheduled]
+      .filter(
+        (x) =>
+          x.flight.status.includes("Est") ||
+          x.flight.status.includes("Boarding") ||
+          x.flight.status.includes("Final Call") ||
+          x.flight.status.includes("Cancel") ||
+          (x.date.getTime() >= from.getTime() &&
+            x.date.getTime() <= to.getTime())
+      )
+      .slice(0, 50),
+    (item) => item.flight.flight[0].no
+  );
 
   return ret;
 });
@@ -154,6 +156,9 @@ const getColor = (status: string) => {
 </script>
 
 <template>
+  <p style="position: relative; padding-left: 10px; margin-bottom: -10px; top: -20px; bottom: -20px">
+    Next update: {{ nextUpdate }}
+  </p>
   <div id="loading-text" v-if="flightData.length === 0">
     <p>Loading...</p>
   </div>
@@ -225,14 +230,10 @@ const getColor = (status: string) => {
 .flights-enter-from,
 .flights-leave-to > *,
 .flights-leave-to {
+  transition: all 0.5s ease;
   opacity: 0;
-}
-
-.table-danger,
-.table-success,
-.table-primary,
-.table-info,
-.table-light {
-  transition: 0.5s;
+  font-size: 0;
+  padding: 0 !important;
+  border: none !important;
 }
 </style>

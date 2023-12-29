@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Screen from "./components/Screen.vue";
+import Clock from "./components/Clock.vue";
 </script>
 
 <template>
@@ -9,5 +10,6 @@ import Screen from "./components/Screen.vue";
   <div style="text-align: center">
     <sub>* Data may be untimely or incorrect</sub>
   </div>
+  <Clock top="20px" left="20px"></Clock>
   <Screen></Screen>
 </template>

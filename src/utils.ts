@@ -1,16 +1,16 @@
-export const randomString = (
+export function randomString(
   len: number,
   charset: string = "qwertyuiopasdfghjklzxcvbnm1234567890"
-) => {
+) {
   let str = "";
   for (let i = 0; i < len; i++) {
     str += charset.charAt(Math.floor(Math.random() * charset.length));
   }
   return str;
-};
+}
 
 // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
-export const shuffle = (array: any[]) => {
+export function shuffle(array: any[]) {
   let currentIndex = array.length,
     randomIndex;
 
@@ -26,4 +26,14 @@ export const shuffle = (array: any[]) => {
   }
 
   return array;
-};
+}
+
+export function removeDuplicates<T>(
+  arr: T[],
+  key: (item: T) => string | number | symbol = (item) => String(item)
+) {
+  const flag = {} as Record<string | number | symbol, boolean>;
+  return arr.filter((item) =>
+    flag[key(item)] ? false : (flag[key(item)] = true)
+  );
+}
